@@ -75,6 +75,17 @@ def load_awq_model(model, checkpoint, w_bit, group_size, device):
             checkpoint,
         ).to(device)
     else:
+        # AWQ downloads may also contain an index for absent FP16 shards.
+        # Resolve a unique .pt checkpoint before Accelerate interprets that index.
+        if os.path.isdir(checkpoint):
+            checkpoint_files = [
+                os.path.join(checkpoint, name)
+                for name in os.listdir(checkpoint)
+                if name.endswith(".pt")
+                and os.path.isfile(os.path.join(checkpoint, name))
+            ]
+            if len(checkpoint_files) == 1:
+                checkpoint = checkpoint_files[0]
         ckpt_version_check(checkpoint)
         pbar = tqdm(range(1))
         pbar.set_description("Loading checkpoint")
